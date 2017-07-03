@@ -6,16 +6,21 @@
 class Stepper2
 {
 public:
-    Stepper2(int index, int directionPin, int stepPin, int enablePin);
-    void setStepsToGo(long stepsToGo);
-    long getStepsToGo();
-    void setDirection(int dirct);
-    void stepMotor();
+    Stepper2(int directionPin_1, int stepPin_1, int enablePin_1,
+    int directionPin_2, int stepPin_2, int enablePin_2);
+    void setStepsToGo_1(long stepsToGo);
+    void setStepsToGo_2(long stepsToGo);
+    long getStepsToGo_1();
+    long getStepsToGo_2();
+    void setDirection_1(int dirct);
+    void setDirection_2(int dirct);
+    void stepMotors();
 private:
-    void setPins(int directionPin, int stepPin, int enablePin);
-    int stepPin_, directionPin_, enablePin_;
-    int index_;
-    int direction_;
-    long stepsToGo_;
+    void setPins_1(int directionPin, int stepPin, int enablePin);
+    void setPins_2(int directionPin, int stepPin, int enablePin);
+    int stepPin_1, directionPin_1, enablePin_1;
+    int stepPin_2, directionPin_2, enablePin_2;
+    int direction_1, direction_2;
+    long stepsToGo_1, stepsToGo_2;
 };
 #endif
