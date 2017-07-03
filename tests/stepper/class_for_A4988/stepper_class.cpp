@@ -29,41 +29,77 @@ void Stepper2::setDirection_2(int dirct)
 
 void Stepper2::stepMotors()
 {
+    // don't run any motor
     if ((stepsToGo_1 <= 0) && (stepsToGo_2 <= 0))
     {
       return;
     }
-    
-    // enable motor
-    digitalWrite(enablePin_1, LOW);
-    digitalWrite(enablePin_2, LOW);
-    if (stepsToGo_1 <= 0)
+    // only run motor 1
+    if((stepsToGo_1 > 0) && (stepsToGo_2 <= 0))
     {
-        digitalWrite(enablePin_1, HIGH);
+        // enable motor
+      digitalWrite(enablePin_1, LOW);
+  
+      // set direction
+      digitalWrite(directionPin_1, direction_1);
+  
+      // do one step
+      digitalWrite(stepPin_1, HIGH); // Output high
+      delayMicroseconds(20); // Wait
+      digitalWrite(stepPin_1, LOW); // Output low
+      delayMicroseconds(20); // Wait
+  
+      // disable motor
+      digitalWrite(enablePin_1, HIGH);
+  
+      stepsToGo_1-=1;
     }
-    if (stepsToGo_2 <= 0)
+    // only run motor 2
+    if((stepsToGo_1 <= 0) && (stepsToGo_2 > 0))
     {
-        digitalWrite(enablePin_2, HIGH);
+        // enable motor
+      digitalWrite(enablePin_2, LOW);
+  
+      // set direction
+      digitalWrite(directionPin_2, direction_2);
+  
+      // do one step
+      digitalWrite(stepPin_2, HIGH); // Output high
+      delayMicroseconds(20); // Wait
+      digitalWrite(stepPin_2, LOW); // Output low
+      delayMicroseconds(20); // Wait
+  
+      // disable motor
+      digitalWrite(enablePin_2, HIGH);
+  
+      stepsToGo_2-=1;
     }
-
-    // set direction
-    digitalWrite(directionPin_1, direction_1);
-    digitalWrite(directionPin_2, direction_2);
-
-    // do one step
-    digitalWrite(stepPin_1, HIGH); // Output high
-    digitalWrite(stepPin_2, HIGH); // Output high
-    delayMicroseconds(20); // Wait
-    digitalWrite(stepPin_1, LOW); // Output low
-    digitalWrite(stepPin_2, LOW); // Output low
-    delayMicroseconds(20); // Wait
-
-    // disable motor
-    digitalWrite(enablePin_1, HIGH);
-    digitalWrite(enablePin_2, HIGH);
-
-    stepsToGo_1-=1;
-    stepsToGo_2-=1;
+    // run both motors
+    if((stepsToGo_1 > 0) && (stepsToGo_2 > 0))
+    {
+      // enable motor
+      digitalWrite(enablePin_1, LOW);
+      digitalWrite(enablePin_2, LOW);
+  
+      // set direction
+      digitalWrite(directionPin_1, direction_1);
+      digitalWrite(directionPin_2, direction_2);
+  
+      // do one step
+      digitalWrite(stepPin_1, HIGH); // Output high
+      digitalWrite(stepPin_2, HIGH); // Output high
+      delayMicroseconds(20); // Wait
+      digitalWrite(stepPin_1, LOW); // Output low
+      digitalWrite(stepPin_2, LOW); // Output low
+      delayMicroseconds(20); // Wait
+  
+      // disable motor
+      digitalWrite(enablePin_1, HIGH);
+      digitalWrite(enablePin_2, HIGH);
+  
+      stepsToGo_1-=1;
+      stepsToGo_2-=1;
+    }
 }
 
 void Stepper2::setPins_1(int directionPin, int stepPin, int enablePin)
