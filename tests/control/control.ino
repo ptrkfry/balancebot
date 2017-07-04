@@ -5,7 +5,7 @@
 AccelStepper left(1, 5, 4); // pin 5 = step, pin 4 = direction, enable pins have to be set manually
 AccelStepper right(1, 9, 8); // pin 9 = step, pin 8 = direction
 int enablePin_1 = 6, enablePin_2 = 10;
-float speed_steppers=500.0;
+float speed_steppers = 1500.0;
 // end definitions for AccelStepper
 
 // Definitions for IMU
@@ -27,14 +27,13 @@ float accZBias=-0.4;
 float gyroXBias=-0.83;
 float gyroYBias=1.8;
 float gyroZBias=-6.75;
-
-int counter = 0;
 // end definitions for IMU
 
 // Definitions for controller
-double errorSteps = 0;
+long errorSteps = 0;
 double heightCenterOfGravity = 43.5;
-double distancePerStep = 0.079718;
+double distancePerStep = 1.27549;
+double kp = 1.2;
 // end definitions for controller
 
 void setup(){
@@ -45,9 +44,6 @@ void setup(){
   right.setSpeed(speed_steppers);
   left.setAcceleration(13000.0);
   right.setAcceleration(13000.0);
-
-  left.move(3000);
-  right.move(-3000);
 
   // enable motors
   pinMode(enablePin_1,OUTPUT);
@@ -66,88 +62,51 @@ void setup(){
 
 void loop()
 {
-  int time_start_loop = micros();
-
-  int time_start = micros();
-  if(micros()-lastTime > 20000)
+  if(micros() - lastTime >= 20000) // 50 Hz
   {
-
-    
     getAccelAndGyro(); //get values from registers of MPU6050 and convert Accelerations to m/s^2 and then to angles
-    
-
     errorSteps = computeErrorSteps(AngleComplX);
-
-//    Serial.print(", angleXcompl: ");
-//    Serial.println(AngleComplX);
+    if(abs(errorSteps) <= 1)
+    {
+      errorSteps = 0;
+    }
+    left.move(-errorSteps);
+    right.move(errorSteps);
   }
-  int time_end = micros()-time_start;
-  Serial.print("time_getAccelAndGyro: ");
-  Serial.print(time_end);
-  time_start = micros();
 
+  //Serial.println(left.distanceToGo());
   if(left.distanceToGo() == 0)
   {
-    digitalWrite(6,HIGH);
+    digitalWrite(6, HIGH);
+  }
+  else
+  {
+    digitalWrite(6, LOW);
   }
   if(right.distanceToGo() == 0)
   {
-    digitalWrite(10,HIGH);
+    digitalWrite(10, HIGH);
+  }
+  else
+  {
+    digitalWrite(10, LOW);
   }
 
-  time_end = micros()-time_start;
-  Serial.print(", time_check_dist: ");
-  Serial.print(time_end);
-  time_start = micros();
-
+  // Step both motors
   left.run();
   right.run();
-
-  time_end = micros()-time_start;
-  Serial.print(", time_run: ");
-  Serial.print(time_end);
-  
-//  if(errorSteps >= 0)
-//  {
-//    steppers.setDirection_1(0);
-//    steppers.setDirection_2(1);
-//  }
-//  else
-//  {
-//    steppers.setDirection_1(1);
-//    steppers.setDirection_2(0);
-//  }
-
-
-  // end 2
-  
-//  // DEBUG
-//  if (counter%30==0 && debugIMU)
-//  {
-//    // Angle around X from filtered measurements
-//    Serial.print("\nAngleComplX: ");
-//    Serial.print(AngleComplX);
-//    Serial.print(", errorSteps: ");
-//    Serial.println(errorSteps);
-//  }    
-//  counter ++;
-//  // end DEBUG
-
-  int time_end_loop = micros()-time_start_loop;
-  Serial.print(", time_loop: ");
-  Serial.println(time_end_loop);
 }
 
 
 void getAccelAndGyro()
 {
-  int16_t AcX_raw, AcZ_raw, GyX_raw;
+  int16_t AcY_raw, AcZ_raw, GyX_raw;
 
   Wire.beginTransmission(MPU);
-  Wire.write(0x3B);  // set pointer to register 0x3B (ACCEL_XOUT_H)
+  Wire.write(0x3D);  // set pointer to register 0x3D (ACCEL_YOUT_H)
   Wire.endTransmission(false);
-  Wire.requestFrom(MPU, 2, true);  // request a total of 2 registers (ACCEL_XOUT_H and ACCEL_XOUT_L)
-  AcX_raw = Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)     
+  Wire.requestFrom(MPU, 2, true);  // request a total of 2 registers (ACCEL_YOUT_H and ACCEL_YOUT_L)
+  AcY_raw = Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)     
 
   Wire.beginTransmission(MPU);
   Wire.write(0x3F);  // set pointer to register 0x3F (ACCEL_ZOUT_H)
@@ -165,13 +124,13 @@ void getAccelAndGyro()
   lastTime = micros();
 
   //convert to real Values
-  AcX = AcX_raw * 0.000598755;
+  AcY = AcY_raw * 0.000598755;
   AcZ = AcZ_raw * 0.000598755;
 
   GyX = GyX_raw * 0.00762939;
 
   // Substract bias
-  AcX = AcX - accXBias;
+  AcY = AcY - accYBias;
   AcZ = AcZ - accZBias;
   
   GyX = GyX - gyroXBias;
@@ -182,15 +141,15 @@ void getAccelAndGyro()
 void computeAngles()
 {
   //convert accelerometer measurement to angles
-  AngleAccelX=atan2(AcY,AcZ) * 180/PI;
+  AngleAccelX = atan2(AcY,AcZ) * 180/PI;
 
   // complementary filter (high pass for Gyro angles, low pass for Accelerometer angles)
-  AngleComplX= 0.98*(AngleComplX + GyX * delta_t) + 0.02 *(AngleAccelX);  
+  AngleComplX = 0.98*(AngleComplX + GyX * delta_t) + 0.02 *(AngleAccelX);  
 }
 
-int computeErrorSteps(double angle)
+long computeErrorSteps(double angle)
 {
-  return round(heightCenterOfGravity * sin(angle/180.0*M_PI) / distancePerStep);
+  return round(kp * heightCenterOfGravity * sin(angle/180.0*M_PI) / distancePerStep);
 }
 
 void setupMPU6050()
