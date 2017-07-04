@@ -5,7 +5,7 @@
 AccelStepper left(1, 5, 4); // pin 5 = step, pin 4 = direction, enable pins have to be set manually
 AccelStepper right(1, 9, 8); // pin 9 = step, pin 8 = direction
 int enablePin_1 = 6, enablePin_2 = 10;
-float speed_steppers = 1500.0;
+float speed_steppers = 4000.0;
 // end definitions for AccelStepper
 
 // Definitions for IMU
@@ -33,7 +33,8 @@ float gyroZBias=-6.75;
 long errorSteps = 0;
 double heightCenterOfGravity = 43.5;
 double distancePerStep = 1.27549;
-double kp = 1.2;
+int steps = 4; // full=1, half = 2, quarter = 4
+double kp = 3 * steps;
 // end definitions for controller
 
 void setup(){
@@ -66,7 +67,7 @@ void loop()
   {
     getAccelAndGyro(); //get values from registers of MPU6050 and convert Accelerations to m/s^2 and then to angles
     errorSteps = computeErrorSteps(AngleComplX);
-    if(abs(errorSteps) <= 1)
+    if(abs(errorSteps) <= 1 * steps)
     {
       errorSteps = 0;
     }
