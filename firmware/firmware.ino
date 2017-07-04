@@ -1,5 +1,6 @@
 #include<Wire.h>
 #include <AccelStepper.h>
+#include <PID_v1.h>
 
 // Definitions for AccelStepper
 AccelStepper left(1, 5, 4); // pin 5 = step, pin 4 = direction, enable pins have to be set manually
@@ -18,7 +19,7 @@ float GyX,GyY,GyZ; //rates measured using Gyro
 float AcX,AcY,AcZ; // accelerations measured using Accelerometer
 float AngleGyroX=0, AngleGyroY=0, AngleGyroZ=0; // angle from integration of gyro data
 float AngleAccelX, AngleAccelY; //angles measured using accelerometer
-float AngleComplX=0, AngleComplY=0; //filtered angles
+double AngleComplX=0, AngleComplY=0; //filtered angles
 
 //Biases
 float accXBias=0.3;
@@ -29,13 +30,32 @@ float gyroYBias=1.8;
 float gyroZBias=-6.75;
 // end definitions for IMU
 
+// Definitions for RC
+double setpointAngle = 0;
+double maxSetpointAngle = 5;
+const int numberOfChannels=6;
+volatile long currentTime;
+volatile long delta;
+volatile long lastPulse=0;
+volatile int pulseLengths[numberOfChannels+1]; //framespace uses one space too
+volatile int channel=0;
+volatile bool start=false;
+// end definitions RC
+
 // Definitions for controller
 long errorSteps = 0;
 double heightCenterOfGravity = 43.5;
 int steps = 4; // full=1, half = 2, quarter = 4
 double distancePerStep = 1.27549 / steps;
-double kp = 3;
+
+// PID
+double kp = 0.595206 * steps; // 0.595206 is computed from geometry (0.595206 full steps error for 1° error)
+double ki = 0;
+double kd = 0;
+double controlInputPID;
+PID PIDcontroller(&AngleComplX, &controlInputPID, &setpointAngle, kp, ki, kd, DIRECT);
 // end definitions for controller
+
 
 void setup(){
   // Steppers
@@ -56,8 +76,15 @@ void setup(){
   setupMPU6050();
   //setSensitivityOfMPU6050();
 
-  
   Serial.begin(115200);
+
+  // RC
+  attachInterrupt(digitalPinToInterrupt(2),pulseDetected,RISING);
+
+  // PID
+  PIDcontroller.SetMode(AUTOMATIC);
+  PIDcontroller.SetOutputLimits(-200,200);
+  
   lastTime = micros();
 }
 
@@ -67,13 +94,28 @@ void loop()
   if(micros() - lastTime >= 20000) // 50 Hz
   {
     getAccelAndGyro();
-    errorSteps = computeErrorSteps(AngleComplX);
+
+    computeSetpointAngle();
+    
+    //errorSteps = computeErrorSteps(AngleComplX);
+    
+    // Compute the control input (PID takes AngleComplX and setpointAngle and computes controlInputPID)
+    PIDcontroller.Compute();
+//    Serial.print("AngleError:");
+//    Serial.print(setpointAngle - AngleComplX);
+//    Serial.print(", controlInputPID: ");
+//    Serial.print(controlInputPID);
+    errorSteps = round(controlInputPID);
+  
+    
     if(abs(errorSteps) <= 1 * steps)
     {
       errorSteps = 0;
     }
-    left.move(-errorSteps);
-    right.move(errorSteps);
+//    Serial.print(", errorSteps: ");
+//    Serial.println(errorSteps);
+    left.move(errorSteps);
+    right.move(-errorSteps);
   }
 
   // Enable or disable motors
@@ -149,9 +191,14 @@ void computeAngles()
   AngleComplX = 0.98*(AngleComplX + GyX * delta_t) + 0.02 *(AngleAccelX);  
 }
 
-long computeErrorSteps(double angle)
+long computeErrorSteps(double& angle)
 {
-  return round(kp * heightCenterOfGravity * sin(angle/180.0*M_PI) / distancePerStep);
+  return round(kp * heightCenterOfGravity * sin(angle/180.0 * M_PI) / distancePerStep);
+}
+
+void computeSetpointAngle()
+{
+  setpointAngle = maxSetpointAngle/500.0 * (pulseLengths[2]-1500.0);
 }
 
 void setupMPU6050()
@@ -169,5 +216,27 @@ void setSensitivityOfMPU6050()
   Wire.write(0x1B);  //into which register to write (0x1B gyro sensitivity, 0x1C accelerometer sensitivity)
   Wire.write(0x00); //write byte to register
   Wire.endTransmission(false);
+}
+
+//ISR
+void  pulseDetected()
+{
+  currentTime = micros();
+  delta = currentTime-lastPulse;
+  lastPulse=currentTime;
+  if(delta>10000)
+  {
+    channel=0;
+    start=true;
+  }
+  else
+  {
+    channel=channel+1;
+  }
+  
+  if(start)
+  {
+    pulseLengths[channel]=delta;
+  }
 }
 
