@@ -1,14 +1,14 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 
-AccelStepper stepper1(1,13,12); //use pin 12 and 13 for dir and step, 1 is the "external driver" mode
-AccelStepper stepper2(1,14,15);
+AccelStepper stepper1(1,4,5); //use pin 12 and 13 for dir and step, 1 is the "external driver" mode
+AccelStepper stepper2(1,8,9);
 MultiStepper multi;
 
 void setup() 
 {
-  stepper1.setMaxSpeed(3000); //for multistepper there is no acceleration--> max speed = speed
-  stepper2.setMaxSpeed(3000);
+  stepper1.setMaxSpeed(30); //for multistepper there is no acceleration--> max speed = speed
+  stepper2.setMaxSpeed(30);
 
   multi.addStepper(stepper1);
   multi.addStepper(stepper2);
@@ -20,7 +20,8 @@ void setup()
 
 void loop() 
 {
-  stepper1.run(); //run the stepper. Both steppers are run so that the target position is achieved by both motors at the same time --> linear movement
+  multi.run(); //run the stepper. Both steppers are run so that the target position is achieved by both motors at the same time --> linear movement
+
   //OR
   //steppers.runSpeedToPosition(); // Blocks until all are in position
 }

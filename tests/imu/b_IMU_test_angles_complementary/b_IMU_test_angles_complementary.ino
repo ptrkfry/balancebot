@@ -20,7 +20,7 @@ long lastTime=0;
 float delta_t=0;
 
 int counter=0;
-bool writeData=true;
+bool writeData=false;
 
 void setup(){
   setupMPU6050();

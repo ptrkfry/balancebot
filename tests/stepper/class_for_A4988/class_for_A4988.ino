@@ -10,7 +10,7 @@ void setup()
   steppers.setStepsToGo_1(10000);
   steppers.setStepsToGo_2(10000);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop()
