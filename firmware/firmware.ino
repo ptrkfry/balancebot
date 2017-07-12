@@ -32,9 +32,9 @@ float gyroZBias=-6.75;
 // Definitions for controller
 long errorSteps = 0;
 double heightCenterOfGravity = 43.5;
-int steps = 4; // full=1, half = 2, quarter = 4
+int steps = 8; // full=1, half = 2, quarter = 4
 double distancePerStep = 1.27549 / steps;
-double kp = 3;
+double kp = 2;
 // end definitions for controller
 
 void setup(){
@@ -43,8 +43,8 @@ void setup(){
   right.setMaxSpeed(speed_steppers);
   left.setSpeed(speed_steppers);
   right.setSpeed(speed_steppers);
-  left.setAcceleration(13000.0); // just set really high
-  right.setAcceleration(13000.0);
+  left.setAcceleration(1300000.0); // just set really high
+  right.setAcceleration(1300000.0);
 
   // enable motors
   pinMode(enablePin_1,OUTPUT);
@@ -68,7 +68,7 @@ void loop()
   {
     getAccelAndGyro();
     errorSteps = computeErrorSteps(AngleComplX);
-    if(abs(errorSteps) <= 1 * steps)
+    if(abs(errorSteps) <= 1*steps)
     {
       errorSteps = 0;
     }
