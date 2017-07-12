@@ -1,12 +1,10 @@
 #include<Wire.h>
-#include <AccelStepper.h>
+#include "stepper_class.h"
 
-// Definitions for AccelStepper
-AccelStepper left(1, 5, 4); // pin 5 = step, pin 4 = direction, enable pins have to be set manually
-AccelStepper right(1, 9, 8); // pin 9 = step, pin 8 = direction
+// Definitions for Stepper2 class
+Stepper2 steppers(4, 5, 6, 8, 9, 10); 
 int enablePin_1 = 6, enablePin_2 = 10;
-float speed_steppers = 4000.0;
-// end definitions for AccelStepper
+// end definitions for Stepper2 class
 
 // Definitions for IMU
 const int MPU=0x68;  // I2C address of the MPU-6050
@@ -32,25 +30,21 @@ float gyroZBias=-6.75;
 // Definitions for controller
 long errorSteps = 0;
 double heightCenterOfGravity = 43.5;
-int steps = 8; // full=1, half = 2, quarter = 4
+int steps = 16; // full=1, half = 2, quarter = 4
 double distancePerStep = 1.27549 / steps;
 double kp = 2;
 // end definitions for controller
 
 void setup(){
   // Steppers
-  left.setMaxSpeed(speed_steppers);
-  right.setMaxSpeed(speed_steppers);
-  left.setSpeed(speed_steppers);
-  right.setSpeed(speed_steppers);
-  left.setAcceleration(1300000.0); // just set really high
-  right.setAcceleration(1300000.0);
+  steppers.setStepsToGo_1(0);
+  steppers.setStepsToGo_2(0);
 
   // enable motors
   pinMode(enablePin_1,OUTPUT);
-  digitalWrite(enablePin_1,LOW);
+  digitalWrite(enablePin_1,HIGH);
   pinMode(enablePin_2,OUTPUT);
-  digitalWrite(enablePin_2,LOW);
+  digitalWrite(enablePin_2,HIGH);
   
   // IMU
   setupMPU6050();
@@ -64,7 +58,7 @@ void setup(){
 void loop()
 {
   // Get IMU data and compute error
-  if(micros() - lastTime >= 20000) // 50 Hz
+  if(micros() - lastTime >= 40000) // 25 Hz
   {
     getAccelAndGyro();
     errorSteps = computeErrorSteps(AngleComplX);
@@ -72,31 +66,19 @@ void loop()
     {
       errorSteps = 0;
     }
-    left.move(-errorSteps);
-    right.move(errorSteps);
-  }
-
-  // Enable or disable motors
-  if(left.distanceToGo() == 0)
-  {
-    digitalWrite(6, HIGH);
-  }
-  else
-  {
-    digitalWrite(6, LOW);
-  }
-  if(right.distanceToGo() == 0)
-  {
-    digitalWrite(10, HIGH);
-  }
-  else
-  {
-    digitalWrite(10, LOW);
+    steppers.setStepsToGo_1(errorSteps);
+    steppers.setStepsToGo_2(errorSteps);
   }
 
   // Step both motors
-  left.run();
-  right.run();
+//  for(int i = 0; i < steps; i++)
+//  {
+//    Serial.print("Motor 1 errorsteps: ");
+//    Serial.println(steppers.getStepsToGo_1());
+//    Serial.print("Motor 2 errorsteps: ");
+//    Serial.println(steppers.getStepsToGo_2());
+    steppers.stepMotors();
+//  }
 }
 
 // Get values from registers of MPU6050 and convert accelerations to m/s^2 and then compute angle
