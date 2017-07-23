@@ -15,6 +15,7 @@ public:
     void setDirection_1(int dirct);
     void setDirection_2(int dirct);
     void stepMotors();
+    void disableMotors();
 private:
     void setPins_1(int directionPin, int stepPin, int enablePin);
     void setPins_2(int directionPin, int stepPin, int enablePin);

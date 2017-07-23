@@ -118,6 +118,12 @@ void Stepper2::stepMotors()
     }
 }
 
+void Stepper2::disableMotors()
+{
+  digitalWrite(enablePin_1, HIGH);
+  digitalWrite(enablePin_2, HIGH);
+}
+
 void Stepper2::setPins_1(int directionPin, int stepPin, int enablePin)
 {
     stepPin_1 = stepPin;
